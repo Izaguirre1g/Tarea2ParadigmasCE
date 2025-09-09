@@ -27,7 +27,7 @@
 ;; cons solo si x no es #f (helper puro)
 (define (cons-si x xs) (if x (cons x xs) xs))
 
-;; Lista de vecinos válidos (3/5/8 según esquina/borde/interior)
+;; Lista de vecinos válidos (3/5/8 respectivamente esquina/borde/interior)
 (define (vecinos-de i W H)
   (cons-si (vecino i -1 -1 W H)
     (cons-si (vecino i  0 -1 W H)
@@ -98,10 +98,17 @@
   (length (list-ref (grafo-adjacencia g) i)))
 
 ;; ----------- Ejemplos (descomentar para probar) --------------
-(define G (grafo-grid 9 9))
-(grafo-matriz G)                   ; matriz 9x9 con índices 0..80
-(list-ref (grafo-adjacencia G) 0)  ; => vecinos de 0 (3 elementos)
-(list-ref (grafo-vecinos8 G) 0)    ; => (#f #f #f #f 1 #f 9 10)
-(grado 0 G)                        ; => 3
+;(define G (grafo-grid 9 9))
+;(grafo-matriz G)                   ; matriz 9x9 con índices 0..80
+;(list-ref (grafo-adjacencia G) 0)  ; => vecinos de 0 (3 elementos)
+;(list-ref (grafo-vecinos8 G) 0)    ; => (#f #f #f #f 1 #f 9 10)
+;(grado 0 G)                        ; => 3
 
+;; ---- Exports ----
+(provide
+  idx x-of y-of dentro?
+  vecino cons-si vecinos-de vecinos8
+  rango fila matriz-nodos alist-ady tabla-vecinos
+  grafo grafo? grafo-W grafo-H grafo-N grafo-nodos grafo-matriz grafo-adjacencia grafo-vecinos8
+  grafo-grid)
 

@@ -1,5 +1,6 @@
 #lang racket
-(require 2htdp/universe 2htdp/image)
+(require 2htdp/universe 2htdp/image
+         "../Logica/Logica.rkt")
 ;;Referencias
 ;;https://share.google/6mKGLEJ16MMdItcFi
 ;; ================== UI Buscaminas (solo interfaz) ==================
@@ -31,12 +32,13 @@
     [(dificil) (values 30 16 99)]
     [else (error 'config (format "dificultad desconocida: ~a" d))]))
 
-;; ---- Estado (simplificado: sin banderas/tiempo/sonido) ----
-(struct world (cols rows mines diff menu-open?) #:transparent)
+;; ---- Estado (ahora incluye el grafo g) ----
+(struct world (cols rows mines diff menu-open? g) #:transparent)
+;; g: (grafo W H ...), donde cada nodo = celda del Buscaminas
 
 (define (mk-world diff)
   (define-values (W H M) (config diff))
-  (world W H M diff #f))
+  (world W H M diff #f (grafo-grid W H)))   ;; << conecta con la LÓGICA
 
 ;; ---- Dropdown ----
 (define (dd-button label)
@@ -133,10 +135,10 @@
         [(pt-in-rect? x y rx (+ ry (* 2 DD-ITEM-H)) DD-W DD-ITEM-H) 'dificil]
         [else #f]))
 
-;; ---- Cambio de dificultad ----
+;; ---- Cambio de dificultad (reconstruye el grafo) ----
 (define (with-diff w d)
   (define-values (W H M) (config d))
-  (world W H M d #f))
+  (world W H M d #f (grafo-grid W H)))  ;; << vuelve a crear el grafo para el nuevo tamaño
 
 ;; ---- Eventos (mouse) ----
 (define (handle-mouse w x y me)
