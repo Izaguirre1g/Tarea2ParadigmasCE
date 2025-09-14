@@ -4,9 +4,22 @@
 ;https://chatgpt.com/
 ;https://www.youtube.com/watch?v=NwZPlLTK-UQ&list=PLTd5ehIj0goMswKV4Glhr4uixrhCmihIt&index=2&ab_channel=makigas
 ; =========================================================
-; Buscaminas como grafo, programación funcional)
+; Buscaminas con un grafo
 ; - Matriz NxM (H filas x W columnas), lista de adyacencia y tabla de 8 vecinos
 ; =========================================================
+
+; ==================== MODELO DE CELDA ====================
+; vecinos = conteo de minas adyacentes (entero 0..8)
+; mina?, descubierta?, marcada? = booleanos
+(struct celda (mina? vecinos descubierta? marcada?) #:transparent)
+
+(define (crear-celda mina? vecinos descubierta? marcada?)
+  (celda (if mina? #t #f)
+         vecinos
+         (if descubierta? #t #f)
+         (if marcada? #t #f)))
+; Con #:transparent se tiene automáticamente accesos a celda-mina? celda-vecinos celda-descubierta? celda-marcada? y el predicado celda?
+
 ;(x,y) = (3,2) ⇒ i = 3 + 2·5 = 13
 ;Y si i = 11, entonces x = 11 mod(%) 5 = 1, y = ⌊11//5⌋ = 2 ⇒ (1,2)
 ; ---------- Indexado 2D<->1D ----------
@@ -106,6 +119,10 @@
 
 ; ---- Exports ----
 (provide
+ ;Export la celda y la crea
+  crear-celda
+  (struct-out celda)
+  
   idx x-of y-of dentro?
   vecino cons-si vecinos-de vecinos8
   rango fila matriz-nodos alist-ady tabla-vecinos
