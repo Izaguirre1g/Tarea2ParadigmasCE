@@ -1,8 +1,11 @@
 #lang racket
 (require 2htdp/universe 2htdp/image
          "../Logica/Logica.rkt")
+;Referencias
+;https://share.google/6mKGLEJ16MMdItcFi
+; ================== UI Buscaminas (solo interfaz) ==================
 
-;==================== CONSTANTES DE UI ====================
+; ---- Constantes de UI ----
 (define CELL        28)   ; Tamaño de celda aumentado para mejor visibilidad
 (define TOP-H       52)
 (define MARGIN      10)
