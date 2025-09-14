@@ -8,6 +8,22 @@
 ; - Matriz NxM (H filas x W columnas), lista de adyacencia y tabla de 8 vecinos
 ; =========================================================
 
+
+; ==================== MODELO DE TABLERO ====================
+; filas, columnas: enteros positivos
+; nivel: símbolo para ('facil 'medio 'dificil, etc.)
+; celdas: lista de celdas (longitud = filas*columnas)
+(struct tablero (filas columnas nivel celdas) #:transparent)
+
+; Constructor con verificación simple del tamaño 
+(define (crear-tablero-estructura filas columnas nivel lista-celdas)
+  (if (= (* filas columnas) (length lista-celdas))
+      (tablero filas columnas nivel lista-celdas)
+      (error 'crear-tablero-estructura
+             "La lista de celdas tiene ~a elementos; se esperaban ~a"
+             (length lista-celdas) (* filas columnas))))
+
+
 ; ==================== MODELO DE CELDA ====================
 ; vecinos = conteo de minas adyacentes (entero 0..8)
 ; mina?, descubierta?, marcada? = booleanos
@@ -29,6 +45,23 @@
 ;Como un plano cartesiano
 (define (dentro? x y W H)
   (and (<= 0 x) (< x W) (<= 0 y) (< y H)))
+
+; ---------- Celdas vacías ----------
+; Una celda vacía: sin mina, 0 vecinos, oculta y no marcada.
+(define (crear-celda-vacia)
+  (crear-celda #f 0 #f #f))
+
+; Se crea una lista de N celdas vacías (recursivo, sin let/map/apply)
+(define (crear-lista-celdas-vacias n)
+  (if (<= n 0)
+      '()
+      (cons (crear-celda-vacia)
+            (crear-lista-celdas-vacias (- n 1)))))
+
+; para tablero HxW
+(define (crear-lista-celdas-vacias-WxH W H)
+  (crear-lista-celdas-vacias (* W H)))
+
 
 ; ---------- Vecinos ----------
 ; Si el vecino existe devuelve su índice; si no, #f
@@ -122,6 +155,11 @@
  ;Export la celda y la crea
   crear-celda
   (struct-out celda)
+
+  crear-lista-celdas-vacias crear-lista-celdas-vacias-WxH
+
+  crear-tablero-estructura
+  (struct-out tablero)
   
   idx x-of y-of dentro?
   vecino cons-si vecinos-de vecinos8

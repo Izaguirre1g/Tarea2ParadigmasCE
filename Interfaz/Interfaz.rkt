@@ -33,14 +33,18 @@
     [else (error 'config (format "dificultad desconocida: ~a" d))]))
 
 ; ---- Estado (ahora incluye el grafo g) ----
-(struct world (cols rows mines diff menu-open? g last-cell) #:transparent)
+(struct world (cols rows mines diff menu-open? g last-cell t) #:transparent)
 ; g: grafo del tablero (cada nodo = celda)
 ; last-cell: (cons x y) o #f
+; t: estructura tablero (lista de celdas)
 
 (define (mk-world diff)
   (define-values (W H M) (config diff))
-  (world W H M diff #f (grafo-grid W H) #f))   ;; << conecta con la LÓGICA
-
+  (world W H M diff #f
+         (grafo-grid W H)                                ; grafo
+         #f
+         (crear-tablero-estructura H W diff              ; tablero vacío
+                                   (crear-lista-celdas-vacias-WxH W H))))
 ; ---- Dropdown ----
 (define (dd-button label)
   (overlay/align "left" "middle"
@@ -155,10 +159,14 @@
         [(pt-in-rect? x y rx (+ ry (* 2 DD-ITEM-H)) DD-W DD-ITEM-H) 'dificil]
         [else #f]))
 
-; ---- Cambio de dificultad (reconstruye el grafo) ----
+; ---- Cambio de dificultad: reconstruye grafo y tablero ----
 (define (with-diff w d)
   (define-values (W H M) (config d))
-  (world W H M d #f (grafo-grid W H) #f))  ;; << vuelve a crear el grafo para el nuevo tamaño
+  (world W H M d #f
+         (grafo-grid W H)
+         #f
+         (crear-tablero-estructura H W d
+                                   (crear-lista-celdas-vacias-WxH W H))))
 
 ; ---- Eventos (mouse) ----
 (define (handle-mouse w x y me)
@@ -177,7 +185,7 @@
     [(and (string=? me "button-down") p)
      (define cx (car p))
      (define cy (cdr p))
-     (define i  (idx cx cy (world-cols w))) ; nodo del grafo
+     (define i  (idx cx cy (world-cols w))) ; nodo del grafo / índice en tablero
      (printf "Click en celda (~a,~a)  -> nodo i=~a\n" cx cy i)
      (struct-copy world w [last-cell p])]
     [else w]))
