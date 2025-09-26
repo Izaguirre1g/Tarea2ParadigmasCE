@@ -4,7 +4,7 @@
 ;https://chatgpt.com/
 ;https://www.youtube.com/watch?v=NwZPlLTK-UQ&list=PLTd5ehIj0goMswKV4Glhr4uixrhCmihIt&index=2&ab_channel=makigas
 ;=========================================================
-; Buscaminas con un grafo - VERSIÓN EXTENDIDA
+; Buscaminas con un grafo
 ; - Matriz NxM (H filas x W columnas), lista de adyacencia y tabla de 8 vecinos
 ; - Soporte para tableros personalizados 8x8 a 15x15
 ; =========================================================
@@ -14,14 +14,14 @@
 (struct celda (mina? vecinos descubierta? marcada?) #:transparent)
 (struct grafo (W H N nodos matriz adjacencia vecinos8) #:transparent)
 
-;---------------------INDEXACIÓN Y COORDENADAS---------------------
+;---------------------INDEXACION Y COORDENADAS---------------------
 (define (idx x y W) (+ x (* y W)))
 (define (x-of i W) (remainder i W))
 (define (y-of i W) (quotient i W))
 (define (dentro? x y W H)
   (and (<= 0 x) (< x W) (<= 0 y) (< y H)))
 
-;---------------------VALIDACIÓN DE DIMENSIONES---------------------
+;---------------------VALIDACION DE DIMENSIONES---------------------
 (define MIN-SIZE 8)
 (define MAX-SIZE 15)
 
@@ -29,7 +29,7 @@
   (and (>= filas MIN-SIZE) (<= filas MAX-SIZE)
        (>= columnas MIN-SIZE) (<= columnas MAX-SIZE)))
 
-;---------------------CREACIÓN DE TABLERO PRINCIPAL---------------------
+;---------------------CREACION DE TABLERO PRINCIPAL---------------------
 ; Crear tablero con dimensiones personalizadas
 (define (crear-tablero-personalizado filas columnas porcentaje-minas)
   (unless (validar-dimensiones filas columnas)
@@ -46,14 +46,14 @@
   (define tablero-con-minas (colocar-minas-aleatorias tablero-vacio num-minas))
   (actualizar-conteo-vecinos tablero-con-minas))
 
-; Crear tablero completo con minas (versión original mejorada)
+; Crear tablero completo con minas
 (define (crear-tablero filas columnas nivel)
   (define num-minas (calcular-numero-minas filas columnas nivel))
   (define tablero-vacio (crear-tablero-vacio filas columnas nivel))
   (define tablero-con-minas (colocar-minas-aleatorias tablero-vacio num-minas))
   (actualizar-conteo-vecinos tablero-con-minas))
 
-; Crear tablero vacío (sin minas)
+; Crear tablero vacio (sin minas)
 (define (crear-tablero-vacio filas columnas nivel)
   (unless (validar-dimensiones filas columnas)
     (error 'crear-tablero-vacio 
@@ -61,14 +61,14 @@
   (tablero filas columnas nivel 
            (crear-lista-celdas-vacias (* filas columnas))))
 
-; Crear lista de celdas vacías recursivamente
+; Crear lista de celdas vacias recursivamente
 (define (crear-lista-celdas-vacias n)
   (if (<= n 0)
       '()
       (cons (celda #f 0 #f #f)
             (crear-lista-celdas-vacias (- n 1)))))
 
-; Calcular número de minas según nivel (mejorado)
+; Calcular numero de minas segun nivel (mejorado)
 (define (calcular-numero-minas filas columnas nivel)
   (define total-celdas (* filas columnas))
   (define porcentaje 
@@ -110,7 +110,7 @@
         (vecino i  0  1 W H)
         (vecino i  1  1 W H)))
 
-;---------------------- COLOCACIÓN DE MINAS ---------------------
+;---------------------- COLOCACION DE MINAS ---------------------
 (define (generar-posiciones-unicas num-minas total-celdas)
   (generar-posiciones-unicas-aux num-minas total-celdas '()))
 
@@ -144,6 +144,19 @@
     [else
      (define posiciones-aleatorias (generar-posiciones-unicas num-minas total-celdas))
      (colocar-minas tablero posiciones-aleatorias)]))
+
+;Colocar minas en posiciones especificas (para primer click seguro)
+(define (colocar-minas-en-posiciones tablero lista-indices)
+  (cond
+    [(null? lista-indices) tablero]
+    [else
+     (define indice-actual (car lista-indices))
+     (define x (x-of indice-actual (tablero-columnas tablero)))
+     (define y (y-of indice-actual (tablero-columnas tablero)))
+     (define mina-nueva (celda #t 0 #f #f))
+     (define tablero-actualizado 
+       (tablero-reemplazar-celda-xy tablero x y mina-nueva))
+     (colocar-minas-en-posiciones tablero-actualizado (cdr lista-indices))]))
 
 ;--------------------- CONTEO DE MINAS VECINAS--------------------------
 (define (contar-minas-vecinas tb x y)
@@ -188,7 +201,7 @@
            (+ indice 1) 
            total))]))
 
-;--------------------- MODIFICACIÓN DE CELDAS ---------------------
+;--------------------- MODIFICACION DE CELDAS ---------------------
 (define (celda-marcar c nuevo-estado)
   (celda (celda-mina? c) (celda-vecinos c) (celda-descubierta? c) nuevo-estado))
 
@@ -201,7 +214,7 @@
 (define (celda-alternar-marcado c)
   (celda-marcar c (not (celda-marcada? c))))
 
-; --------------------- ACCESO Y MODIFICACIÓN DE TABLERO ---------------------
+; --------------------- ACCESO Y MODIFICACION DE TABLERO ---------------------
 (define (tablero-obtener-celda-xy tb x y)
   (if (dentro? x y (tablero-columnas tb) (tablero-filas tb))
       (tablero-obtener-celda-nodo tb (idx x y (tablero-columnas tb)))
@@ -233,12 +246,12 @@
     [else (cons (car lista) 
                 (reemplazar-elemento-lista (cdr lista) (- indice 1) nuevo-elemento))]))
 
-; --------------------- LÓGICA DE JUEGO ---------------------
+; --------------------- LOGICA DE JUEGO ---------------------
 ; Descubrir celda y manejar cascada si es 0
 (define (descubrir-celda tb x y)
   (define celda (tablero-obtener-celda-xy tb x y))
   (cond
-    [(not celda) tb]  ; Coordenadas inválidas
+    [(not celda) tb]  ; Coordenadas invalidas
     [(celda-descubierta? celda) tb]  ; Ya descubierta
     [(celda-marcada? celda) tb]  ; Marcada con bandera
     [(celda-mina? celda)  ; Es mina - Game Over
@@ -272,8 +285,93 @@
   (define celda (tablero-obtener-celda-xy tb x y))
   (cond
     [(not celda) tb]
-    [(celda-descubierta? celda) tb]  ; No se puede marcar si ya está descubierta
+    [(celda-descubierta? celda) tb]  ; No se puede marcar si ya esta descubierta
     [else (tablero-reemplazar-celda-xy tb x y (celda-alternar-marcado celda))]))
+
+;Obtener el estado completo de una celda para la interfaz
+(define (obtener-estado-celda tb x y)
+  (define celda (tablero-obtener-celda-xy tb x y))
+  (cond
+    ;Coordenadas invalidas o celda no existe
+    [(not celda) 'invalida]
+    
+    ;Celda descubierta - verificar que contiene
+    [(celda-descubierta? celda)
+     (cond
+       ;Es una mina descubierta (causa derrota)
+       [(celda-mina? celda) 'mina-descubierta]
+       ;Celda sin minas alrededor (se expande automaticamente)
+       [(= (celda-vecinos celda) 0) 'vacia]
+       ;Celda con minas vecinas (retorna el numero 1-8)
+       [else (celda-vecinos celda)])]
+    
+    ;Celda marcada con bandera (no descubierta)
+    [(celda-marcada? celda) 'marcada]
+    
+    ;Celda oculta sin marcar
+    [else 'oculta]))
+
+;Calcular el numero de minas restantes (no marcadas)
+(define (obtener-minas-restantes tb)
+  (- (tablero-contar-minas tb) 
+     (tablero-contar-marcadas tb)))
+
+; Contar banderas en una lista especifica de indices
+(define (contar-banderas-en-lista tb lista-indices)
+  (cond
+    ;Caso base: lista vacia
+    [(null? lista-indices) 0]
+    ;Caso recursivo
+    [else
+     (define indice-actual (car lista-indices))
+     (define celda-actual (tablero-obtener-celda-nodo tb indice-actual))
+     (cond
+       ;Si no existe la celda, continuar sin contar
+       [(not celda-actual) 
+        (contar-banderas-en-lista tb (cdr lista-indices))]
+       ;Si esta marcada, sumar 1 y continuar
+       [(celda-marcada? celda-actual)
+        (+ 1 (contar-banderas-en-lista tb (cdr lista-indices)))]
+       ;Si no esta marcada, continuar sin sumar
+       [else
+        (contar-banderas-en-lista tb (cdr lista-indices))])]))
+
+; Verificar si todas las celdas estan descubiertas
+(define (verificar-todas-descubiertas? tb)
+  (verificar-todas-descubiertas-aux (tablero-celdas tb)))
+
+(define (verificar-todas-descubiertas-aux celdas)
+  (cond
+    ;Si revisamos todas y ninguna fallo, retornar #t
+    [(null? celdas) #t]
+    ;Si encontramos una no descubierta, retornar #f
+    [(not (celda-descubierta? (car celdas))) #f]
+    ;Continuar con el resto
+    [else (verificar-todas-descubiertas-aux (cdr celdas))]))
+
+;Obtener estadisticas completas del tablero
+    ;Retorna: lista de pares (simbolo . valor) con estadisticas
+(define (obtener-estadisticas-tablero tb)
+  (define total-celdas (* (tablero-filas tb) (tablero-columnas tb)))
+  (define minas (tablero-contar-minas tb))
+  (define descubiertas (tablero-contar-descubiertas tb))
+  (define marcadas (tablero-contar-marcadas tb))
+  (define sin-descubrir (- total-celdas descubiertas))
+  (define porcentaje-completado 
+    (exact->inexact (/ descubiertas (- total-celdas minas))))
+  
+  (list (cons 'total-celdas total-celdas)
+        (cons 'total-minas minas)
+        (cons 'celdas-descubiertas descubiertas)
+        (cons 'celdas-marcadas marcadas)
+        (cons 'celdas-sin-descubrir sin-descubrir)
+        (cons 'minas-restantes (- minas marcadas))
+        (cons 'porcentaje-completado porcentaje-completado)
+        (cons 'estado-juego 
+              (cond
+                [(verificar-victoria? tb) 'victoria]
+                [(verificar-derrota? tb) 'derrota]
+                [else 'en-progreso]))))
 
 ; Verificar victoria
 (define (verificar-victoria? tb)
@@ -286,7 +384,7 @@
     [else
      (define c (car celdas))
      (if (and (not (celda-mina? c)) (not (celda-descubierta? c)))
-         #f  ; Hay una celda sin mina que no está descubierta
+         #f  ; Hay una celda sin mina que no esta descubierta
          (verificar-victoria-aux (cdr celdas)))]))
 
 ; Verificar derrota (alguna mina descubierta)
@@ -348,7 +446,7 @@
     [else (contar-elementos-con (cdr lista) condicion)]))
 
 ; --------------------- FUNCIONES ADICIONALES PARA TABLEROS PERSONALIZADOS ---------------------
-; Obtener información sobre el tablero
+; Obtener informacion sobre el tablero
 (define (tablero-info tb)
   (define total-celdas (* (tablero-filas tb) (tablero-columnas tb)))
   (define total-minas (tablero-contar-minas tb))
@@ -359,10 +457,10 @@
         (cons 'porcentaje-minas (exact->inexact porcentaje-minas))
         (cons 'nivel (tablero-nivel tb))))
 
-; Sugerir número de minas para dimensiones dadas
+; Sugerir numero de minas para dimensiones dadas
 (define (sugerir-minas filas columnas dificultad)
   (unless (and (>= filas 8) (<= filas 30) (>= columnas 8) (<= columnas 30))
-    (error 'sugerir-minas "Dimensiones inválidas"))
+    (error 'sugerir-minas "Dimensiones invalidas"))
   (define total-celdas (* filas columnas))
   (define porcentaje
     (case dificultad
@@ -371,8 +469,8 @@
       [(dificil) 0.20]
       [else 0.15]))
   (values (max 1 (inexact->exact (floor (* total-celdas porcentaje))))
-          (max 1 (inexact->exact (floor (* total-celdas 0.05))))   ; mínimo
-          (min (- total-celdas 1) (inexact->exact (floor (* total-celdas 0.30)))))) ; máximo
+          (max 1 (inexact->exact (floor (* total-celdas 0.05))))   ; minimo
+          (min (- total-celdas 1) (inexact->exact (floor (* total-celdas 0.30)))))) ; maximo
 
 ; --------------------- EXPORTS ---------------------
 (provide
@@ -386,36 +484,45 @@
  
  ; Funciones principales
  crear-tablero
- crear-tablero-personalizado  ; NUEVA
+ crear-tablero-personalizado
  crear-tablero-vacio
  calcular-numero-minas
  
- ; Validación
- validar-dimensiones  ; NUEVA
+ ; Validacion
+ validar-dimensiones 
  
- ; Indexación
+ ; Indexacion
  idx x-of y-of dentro?
  
  ; Vecinos
  vecinos-de vecinos8
  
- ; Modificación de celdas
+ ; Modificacion de celdas
  celda-marcar celda-descubrir celda-establecer-vecinos celda-alternar-marcado
  
- ; Acceso y modificación de tablero
+ ; Acceso y modificacion de tablero
  tablero-obtener-celda-xy tablero-obtener-celda-nodo
  tablero-reemplazar-celda-xy tablero-reemplazar-celda-nodo
  
- ; Lógica del juego
+ ; Logica del juego
  descubrir-celda marcar-celda
  verificar-victoria? verificar-derrota?
  
  ; Minas
  colocar-minas-aleatorias contar-minas-vecinas
+ colocar-minas-en-posiciones ; 
+ actualizar-conteo-vecinos   ; 
  
  ; Utilidades
  tablero-contar-minas tablero-contar-descubiertas tablero-contar-marcadas
- tablero-info sugerir-minas  ; NUEVAS
+ tablero-info sugerir-minas
+
+ ;Funciones de estado
+ obtener-estado-celda
+ obtener-minas-restantes
+ contar-banderas-en-lista
+ verificar-todas-descubiertas?
+ obtener-estadisticas-tablero
  
  ; Grafo
  grafo-grid rango matriz-nodos alist-ady tabla-vecinos)
