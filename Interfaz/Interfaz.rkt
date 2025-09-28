@@ -235,48 +235,69 @@
 ;      * >0 vecinos -> numero coloreado
 ;  - si esta marcada -> bandera roja (signo !)
 ;  - si esta oculta -> color A/B
-(define (dibujar-celda celda x y alt? cell-size)
-  (define base-color (if alt? COLOR-board-a COLOR-board-b)) ; Patron ajedrez
+(define (dibujar-celda celda x y alt? cell-size show-all-mines?)
+  (define base-color (if alt? COLOR-board-a COLOR-board-b)) ; Patrón ajedrez
   (define font-size (max 10 (min 24 (inexact->exact (floor (* cell-size 0.65))))))
   (define mine-radius (max 4 (min 15 (inexact->exact (floor (* cell-size 0.4))))))
-  (define flag-size (max 10 (min 20 (inexact->exact (floor (* cell-size 0.6))))))
+  (define flag-size  (max 10 (min 20 (inexact->exact (floor (* cell-size 0.6))))))
+
+  ; ¿Debemos dibujar esta celda como "descubierta" aunque no lo esté?
+  ; - Si ya está descubierta => sí.
+  ; - Si el juego terminó en derrota y es mina => también sí (forzamos mostrar la mina).
+  (define tratar-como-descubierta?
+    (or (celda-descubierta? celda)
+        (and show-all-mines? (celda-mina? celda))))
+
   (cond
-    [(celda-descubierta? celda)
+    [tratar-como-descubierta?
      (cond
        [(celda-mina? celda)
-        ; Mina: circulo solido sobre fondo de celda descubierta
+        ; Mina visible (descubierta o revelada por derrota) sobre fondo abierto
         (overlay (circle mine-radius "solid" COLOR-mine)
                  (rectangle cell-size cell-size "solid" COLOR-cell-open))]
+
        [(= (celda-vecinos celda) 0)
-        ; Sin minas vecinas: solo fondo descubierto
+        ; Sin minas vecinas: solo fondo abierto
         (rectangle cell-size cell-size "solid" COLOR-cell-open)]
+
        [else
-        ; Con minas vecinas: numero con color tradicional
-        (overlay (text (number->string (celda-vecinos celda)) 
-                      font-size
-                      (color-numero (celda-vecinos celda)))
+        ; Con minas vecinas: número coloreado sobre fondo abierto
+        (overlay (text (number->string (celda-vecinos celda))
+                       font-size
+                       (color-numero (celda-vecinos celda)))
                  (rectangle cell-size cell-size "solid" COLOR-cell-open))])]
+
+    ; Si no se trata como descubierta: o bien está marcada, o sigue oculta
     [(celda-marcada? celda)
-     ; Bandera en celdas ocultas marcadas
      (overlay (text "!" flag-size COLOR-flag)
               (rectangle cell-size cell-size "solid" base-color))]
+
     [else
-     ; Celda oculta sin marcar
      (rectangle cell-size cell-size "solid" base-color)]))
 
-; Dibuja el tablero completo componiendo filas y celdas
+; Dibuja el tablero completo componiendo filas y celdas.
+; Ahora pasa el flag `show-all-mines?` a cada celda para revelar todas las minas en derrota.
 (define (dibujar-tablero-completo w)
   (define tablero (world-tablero w))
   (define filas (tablero-filas tablero))
   (define columnas (tablero-columnas tablero))
   (define celdas (tablero-celdas tablero))
   (define cell-size (world-cell-size w))
+
+  ; Si el estado del mundo es 'derrota, revelamos todas las minas
+  (define show-all-mines? (eq? (world-estado w) 'derrota))
+
   (define (dibujar-fila y)
     (define (dibujar-celda-en-x x)
-      (define idx-actual (idx x y columnas)) ; (x,y) -> indice lineal
-      (dibujar-celda (list-ref celdas idx-actual) x y (even? (+ x y)) cell-size))
+      (define idx-actual (idx x y columnas)) ; (x,y) -> índice lineal
+      (dibujar-celda (list-ref celdas idx-actual)
+                     x y
+                     (even? (+ x y))
+                     cell-size
+                     show-all-mines?))
     (apply beside (map dibujar-celda-en-x (range columnas))))
   (apply above (map dibujar-fila (range filas))))
+
 
 ;------------------- INTERFAZ SUPERIOR -------------------
 ;Ahora incluye el cronometro
