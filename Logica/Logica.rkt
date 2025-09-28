@@ -84,7 +84,7 @@
   (define tablero-con-minas (colocar-minas-aleatorias tablero-vacio num-minas))
   (actualizar-conteo-vecinos tablero-con-minas))
 
-; Crear tablero con niveles predefinidos (fácil 10%, medio 15%, difícil 20%)
+; Crear tablero con niveles predefinidos (facil 10%, medio 15%, dificil 20%)
 ;  Simplifica la creacion con dificultades estándar
 ; Algoritmo: Similar a crear-tablero-personalizado pero con porcentajes fijos
 (define (crear-tablero filas columnas nivel)
@@ -93,7 +93,7 @@
   (define tablero-con-minas (colocar-minas-aleatorias tablero-vacio num-minas))
   (actualizar-conteo-vecinos tablero-con-minas))
 
-; Crear tablero vacío (todas las celdas sin minas)
+; Crear tablero vacio (todas las celdas sin minas)
 ; Proposito: Base para luego agregar minas
 ; Estructura: Lista plana de (filas * columnas) celdas iniciales
 (define (crear-tablero-vacio filas columnas nivel)
@@ -277,23 +277,34 @@
          (+ 1 (contar-minas-en-posiciones tb (cdr lista-indices)))  ; Tiene mina
          (contar-minas-en-posiciones tb (cdr lista-indices)))]))    ; No tiene mina
 
+;  Actualizar conteo de vecinos para TODO el tablero
+; Despues de colocar minas, calcular números para cada celda
+; Usa funcion auxiliar con indices
 (define (actualizar-conteo-vecinos tablero)
   (define total (* (tablero-filas tablero) (tablero-columnas tablero)))
   (actualizar-conteo-aux tablero 0 total))
 
+; Recursion por indices: Procesar cada celda del tablero secuencialmente
 (define (actualizar-conteo-aux tablero indice total)
   (cond
+    ; Se procesan todas las celdas
     [(>= indice total) tablero]
     [else
+      ; Obtener la celda en posicion actual
      (define celda-actual (list-ref (tablero-celdas tablero) indice))
+      ; ¿Es mina o celda normal?
      (if (celda-mina? celda-actual)
+          ; MINA: No calcular vecinos, continuar con siguiente
          (actualizar-conteo-aux tablero (+ indice 1) total)
+          ; CELDA NORMAL: Calcular y actualizar vecinos
          (actualizar-conteo-aux 
            (tablero-reemplazar-celda-nodo 
              tablero 
              indice 
+              ; Crear nueva celda con conteo de vecinos
              (celda-establecer-vecinos 
                celda-actual 
+              ; Contar minas vecinas en esta posicion
                (contar-minas-vecinas 
                  tablero 
                  (x-of indice (tablero-columnas tablero))
@@ -302,72 +313,108 @@
            total))]))
 
 ;--------------------- MODIFICACION DE CELDAS ---------------------
+;  Funciones puras para cambiar estado de celdas sin mutación
+
+; Cambiar estado de marcado (bandera) de una celda
 (define (celda-marcar c nuevo-estado)
   (celda (celda-mina? c) (celda-vecinos c) (celda-descubierta? c) nuevo-estado))
 
+; Marcar celda como descubierta (usuario hizo click)
 (define (celda-descubrir c)
   (celda (celda-mina? c) (celda-vecinos c) #t (celda-marcada? c)))
 
+; Actualizar número de minas vecinas en una celda
 (define (celda-establecer-vecinos c nuevo-numero)
   (celda (celda-mina? c) nuevo-numero (celda-descubierta? c) (celda-marcada? c)))
 
+; Alternar estado de marcado (poner/quitar bandera)
+; Si está marcada -> desmarcar, si no está marcada -> marcar
 (define (celda-alternar-marcado c)
   (celda-marcar c (not (celda-marcada? c))))
 
 ; --------------------- ACCESO Y MODIFICACION DE TABLERO ---------------------
+; Funciones para obtener y modificar celdas del tablero de forma segura
+; Siempre validar límites antes de acceder a la lista
 (define (tablero-obtener-celda-xy tb x y)
   (if (dentro? x y (tablero-columnas tb) (tablero-filas tb))
       (tablero-obtener-celda-nodo tb (idx x y (tablero-columnas tb)))
       #f))
 
+; Obtener celda usando índice lineal
+; Verificar que el indice este en rango valido
+; Usar list-ref para obtener elemento de la lista
 (define (tablero-obtener-celda-nodo tb nodo)
   (if (and (>= nodo 0) (< nodo (* (tablero-filas tb) (tablero-columnas tb))))
       (list-ref (tablero-celdas tb) nodo)
-      #f))
+      #f)) ; indice invalido
 
+; Reemplazar celda usando coordenadas (x,y)
+; Solo reemplazar si las coordenadas son validas
+; Convertir a indice y usar funcion de nodo
 (define (tablero-reemplazar-celda-xy tb x y nueva-celda)
   (if (dentro? x y (tablero-columnas tb) (tablero-filas tb))
       (tablero-reemplazar-celda-nodo tb (idx x y (tablero-columnas tb)) nueva-celda)
-      tb))
+      tb)) ; Coordenadas inválidas, retornar tablero sin cambios
 
+; Reemplazar celda usando indice lineal
+; Crear nuevo tablero con lista modificada
+; Solo reemplazar si el índice es válido
 (define (tablero-reemplazar-celda-nodo tb nodo nueva-celda)
   (if (and (>= nodo 0) (< nodo (* (tablero-filas tb) (tablero-columnas tb))))
+    ; CREAR: Nuevo tablero con celda reemplazada
       (tablero (tablero-filas tb)
                (tablero-columnas tb)
                (tablero-nivel tb)
                (reemplazar-elemento-lista (tablero-celdas tb) nodo nueva-celda))
-      tb))
+      tb)) ; Indice invalido, retornar tablero sin cambios
 
+; Reemplazar elemento en lista por indice
+; Procesar lista elemento por elemento hasta encontrar posicion
+; Construir nueva lista con elemento reemplazado
 (define (reemplazar-elemento-lista lista indice nuevo-elemento)
   (cond
-    [(null? lista) '()]
-    [(< indice 0) lista]
-    [(= indice 0) (cons nuevo-elemento (cdr lista))]
-    [else (cons (car lista) 
+    [(null? lista) '()]                    ; Lista vacia
+    [(< indice 0) lista]                   ; indice negativo invalido
+    [(= indice 0) (cons nuevo-elemento (cdr lista))]  ; Posicion encontrada
+    [else (cons (car lista)                ; Reconstruir lista
                 (reemplazar-elemento-lista (cdr lista) (- indice 1) nuevo-elemento))]))
 
 ; --------------------- LOGICA DE JUEGO ---------------------
+; Implementar las reglas principales del Buscaminas
+; Caracteristicas: Descubrimiento, expansion automatica, marcado
 ; Descubrir celda y manejar cascada si es 0
 (define (descubrir-celda tb x y)
   (define celda (tablero-obtener-celda-xy tb x y))
   (cond
-    [(not celda) tb]  ; Coordenadas invalidas
-    [(celda-descubierta? celda) tb]  ; Ya descubierta
-    [(celda-marcada? celda) tb]  ; Marcada con bandera
-    [(celda-mina? celda)  ; Es mina - Game Over
+    ; Validacion: Coordenadas invalidas
+    [(not celda) tb]
+    ; Ya esta descubierta, no hacer nada
+    [(celda-descubierta? celda) tb]
+    ; Esta marcada con bandera, no descubrir
+    [(celda-marcada? celda) tb]
+    ; Es mina -> descubrir (causa derrota)
+    [(celda-mina? celda)
      (tablero-reemplazar-celda-xy tb x y (celda-descubrir celda))]
+    ; No es mina -> descubrir y posible expansión
     [else  ; No es mina
      (define celda-descubierta (celda-descubrir celda))
      (define tb-actualizado (tablero-reemplazar-celda-xy tb x y celda-descubierta))
+     ; ¿Expandir automaticamente?
      (if (= (celda-vecinos celda) 0)
+         ; 0 vecinos -> descubrir celdas adyacentes
          (descubrir-vecinos-recursivo tb-actualizado x y)
+         ;Mostrar número de vecinos
          tb-actualizado)]))
 
-; Descubrir recursivamente vecinos cuando la celda tiene 0 minas alrededor
+; Descubrir vecinos cuando celda tiene 0 minas alrededor
+; Obtener vecinos válidos y aplicar descubrir-celda a cada uno
+; Recursion: descubrir-celda puede a su vez activar más expansiones
 (define (descubrir-vecinos-recursivo tb x y)
+  ; Lista de indices de vecinos validos
   (define vecinos (vecinos-de (idx x y (tablero-columnas tb)) 
                               (tablero-columnas tb) 
                               (tablero-filas tb)))
+  ; Intentar descubrir cada vecino
   (descubrir-lista-vecinos tb vecinos))
 
 (define (descubrir-lista-vecinos tb lista-indices)
